@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Gym Planner</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="hero">
+        <p class="eyebrow">Gym Planner</p>
+        <h1>首頁</h1>
+        <p class="hero-copy">先設定課表與動作組數，再開始訓練；完成後自動收進歷史紀錄。</p>
+      </header>
+
+      <main class="page-stack">
+        <section id="page-home" class="page is-active">
+          <div class="home-grid">
+            <button class="home-card nav-btn" type="button" data-page="workout">
+              <p class="section-kicker">首頁</p>
+              <h2>開始訓練</h2>
+              <p>選一份課表，展開動作後逐組完成並進行休息倒數。</p>
+            </button>
+            <button class="home-card nav-btn" type="button" data-page="plan-create">
+              <p class="section-kicker">首頁</p>
+              <h2>新增課表</h2>
+              <p>先建立課表名稱與日期，再到課表列表補上動作和各組資料。</p>
+            </button>
+            <button class="home-card nav-btn" type="button" data-page="plan-list">
+              <p class="section-kicker">首頁</p>
+              <h2>課表列表</h2>
+              <p>查看所有課表，並在各個動作底下直接加入組數、重量和休息秒數。</p>
+            </button>
+            <button class="home-card nav-btn" type="button" data-page="history">
+              <p class="section-kicker">首頁</p>
+              <h2>歷史紀錄</h2>
+              <p>查看已完成課表與完成時間。</p>
+            </button>
+          </div>
+        </section>
+
+        <section id="page-plan-create" class="page panel hidden">
+          <div class="page-head">
+            <button class="back-btn nav-btn" type="button" data-page="home">返回首頁</button>
+            <div>
+              <p class="section-kicker">新增課表</p>
+              <h2>先建立課表</h2>
+            </div>
+          </div>
+
+          <form id="plan-form" class="stack-form">
+            <label>
+              <span>課表名稱</span>
+              <input id="plan-name" name="planName" type="text" maxlength="40" required />
+            </label>
+            <label>
+              <span>課表日期</span>
+              <input id="plan-date" name="planDate" type="date" required />
+            </label>
+            <button class="primary-btn" type="submit">新增課表</button>
+          </form>
+          <button class="secondary-btn nav-btn" type="button" data-page="plan-list">前往課表列表</button>
+        </section>
+
+        <section id="page-plan-list" class="page panel hidden">
+          <div class="page-head">
+            <button class="back-btn nav-btn" type="button" data-page="home">返回首頁</button>
+            <div>
+              <p class="section-kicker">課表列表</p>
+              <h2>管理課表內容</h2>
+            </div>
+          </div>
+
+          <button class="secondary-btn nav-btn" type="button" data-page="plan-create">新增另一份課表</button>
+          <div id="plan-list" class="stack-list"></div>
+        </section>
+
+        <section id="page-workout" class="page panel hidden">
+          <div class="page-head">
+            <button class="back-btn nav-btn" type="button" data-page="home">返回首頁</button>
+            <div>
+              <p class="section-kicker">開始訓練</p>
+              <h2 id="active-plan-title">尚未開始訓練</h2>
+            </div>
+          </div>
+
+          <div id="active-plan-status" class="summary-pill">0 / 0 組完成</div>
+
+          <div id="workout-plan-picker" class="stack-list"></div>
+
+          <div id="timer-card" class="timer-card hidden">
+            <p class="timer-label">休息倒數</p>
+            <strong id="timer-display">00:00</strong>
+            <p id="timer-context" class="timer-context"></p>
+            <button id="skip-rest-btn" class="secondary-btn timer-action" type="button">結束休息</button>
+          </div>
+
+          <div id="active-empty" class="empty-state">
+            先到設定課表建立資料，再回來開始訓練。
+          </div>
+
+          <div id="active-workout" class="stack-list"></div>
+        </section>
+
+        <section id="page-history" class="page panel hidden">
+          <div class="page-head">
+            <button class="back-btn nav-btn" type="button" data-page="home">返回首頁</button>
+            <div>
+              <p class="section-kicker">歷史紀錄</p>
+              <h2>完成過的課表</h2>
+            </div>
+          </div>
+          <div id="history-list" class="stack-list"></div>
+        </section>
+      </main>
+    </div>
+
+    <div id="completion-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="completion-title">
+      <div class="modal-card">
+        <p class="section-kicker">訓練完成</p>
+        <h2 id="completion-title">恭喜完成</h2>
+        <p id="completion-copy" class="modal-copy">這次課表已經收錄到歷史紀錄。</p>
+        <button id="completion-home-btn" class="primary-btn" type="button">返回首頁</button>
+      </div>
+    </div>
+
+    <template id="plan-card-template">
+      <article class="plan-card">
+        <div class="card-topline">
+          <div>
+            <strong class="card-title"></strong>
+            <p class="card-meta"></p>
+          </div>
+          <span class="status-badge"></span>
+        </div>
+
+        <form class="inline-form add-exercise-form">
+          <label>
+            <span>新增動作</span>
+            <input name="exerciseName" type="text" maxlength="40" required />
+          </label>
+          <button class="secondary-btn" type="submit">加入動作</button>
+        </form>
+
+        <div class="nested-list exercise-list"></div>
+
+        <div class="card-actions">
+          <button class="ghost-btn delete-plan-btn" type="button">刪除課表</button>
+        </div>
+      </article>
+    </template>
+
+    <template id="exercise-editor-template">
+      <section class="nested-card">
+        <div class="card-topline">
+          <div>
+            <strong class="exercise-name"></strong>
+            <p class="card-meta exercise-meta"></p>
+          </div>
+        </div>
+
+        <form class="set-form">
+          <div class="triple-grid">
+            <label>
+              <span>數量</span>
+              <input name="reps" type="number" min="1" step="1" inputmode="numeric" required />
+            </label>
+            <label>
+              <span>重量</span>
+              <input name="weight" type="number" min="0" step="0.5" inputmode="decimal" required />
+            </label>
+            <label>
+              <span>休息時間（秒）</span>
+              <input name="rest" type="number" min="0" step="1" inputmode="numeric" required />
+            </label>
+          </div>
+          <button class="secondary-btn" type="submit">加入組</button>
+        </form>
+
+        <div class="set-chip-list"></div>
+      </section>
+    </template>
+
+    <template id="workout-plan-template">
+      <article class="plan-card">
+        <div class="card-topline">
+          <div>
+            <strong class="card-title"></strong>
+            <p class="card-meta"></p>
+          </div>
+          <button class="primary-btn start-plan-btn" type="button">開始訓練</button>
+        </div>
+      </article>
+    </template>
+
+    <template id="active-exercise-template">
+      <article class="workout-card">
+        <button class="exercise-toggle" type="button">
+          <div>
+            <strong class="workout-title"></strong>
+            <p class="card-meta workout-meta"></p>
+          </div>
+          <span class="status-badge workout-badge"></span>
+        </button>
+        <div class="active-set-list hidden"></div>
+      </article>
+    </template>
+
+    <template id="active-set-template">
+      <div class="set-row">
+        <div class="set-row-copy">
+          <strong class="set-label"></strong>
+          <p class="set-detail"></p>
+        </div>
+        <button class="primary-btn complete-set-btn" type="button">完成</button>
+      </div>
+    </template>
+
+    <template id="history-card-template">
+      <article class="history-card">
+        <div class="card-topline">
+          <div>
+            <strong class="card-title"></strong>
+            <p class="card-meta"></p>
+          </div>
+          <span class="status-badge is-complete">已完成</span>
+        </div>
+      </article>
+    </template>
+
+    <script src="app.js"></script>
+  </body>
+</html>
