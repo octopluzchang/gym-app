@@ -186,6 +186,26 @@ function handleDeletePlan() {
   render();
 }
 
+function deletePlanFromList(planId) {
+  if (state.activeWorkout?.planId === planId) return;
+  state.plans = state.plans.filter((plan) => plan.id !== planId);
+  if (state.activePlanId === planId) state.activePlanId = null;
+  persistState();
+  renderPlans();
+  renderWorkoutPlanPicker();
+}
+
+function removeExercise(planId, exerciseId) {
+  if (state.activeWorkout?.planId === planId) return;
+  const plan = findPlan(planId);
+  if (!plan) return;
+  plan.exercises = plan.exercises.filter((ex) => ex.id !== exerciseId);
+  persistState();
+  renderPlans();
+  renderPlanDetail();
+  renderWorkoutPlanPicker();
+}
+
 function addExercise(planId, exerciseName) {
   const plan = findPlan(planId);
   if (!plan || !exerciseName) return;
@@ -452,16 +472,20 @@ function renderPlans() {
 
   state.plans.forEach((plan) => {
     const fragment = elements.planSummaryTemplate.content.cloneNode(true);
-    const button = fragment.querySelector(".plan-summary");
+    const wrapper = fragment.querySelector(".plan-summary");
+    const main = fragment.querySelector(".plan-summary-main");
+    const deleteBtn = fragment.querySelector(".plan-summary-delete");
     const name = fragment.querySelector(".plan-summary-name");
     const meta = fragment.querySelector(".plan-summary-meta");
 
     name.textContent = plan.name;
     meta.textContent = `${plan.exercises.length} 個動作 · ${countPlanSets(plan)} 組`;
     if (state.activeWorkout?.planId === plan.id) {
-      button.dataset.active = "true";
+      wrapper.dataset.active = "true";
+      deleteBtn.disabled = true;
     }
-    button.addEventListener("click", () => openPlanDetail(plan.id));
+    main.addEventListener("click", () => openPlanDetail(plan.id));
+    deleteBtn.addEventListener("click", () => deletePlanFromList(plan.id));
     elements.planList.append(fragment);
   });
 }
@@ -486,9 +510,12 @@ function renderDraftExerciseCard(exercise) {
   const meta = fragment.querySelector(".exercise-meta");
   const setForm = fragment.querySelector(".set-form");
   const setList = fragment.querySelector(".set-chip-list");
+  const removeBtn = fragment.querySelector(".remove-exercise-btn");
 
   name.textContent = exercise.name;
   meta.textContent = `${exercise.sets.length} 組`;
+
+  removeBtn.addEventListener("click", () => removeDraftExercise(exercise.id));
 
   setForm.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -543,9 +570,15 @@ function renderExerciseEditor(planId, exercise) {
   const meta = fragment.querySelector(".exercise-meta");
   const setForm = fragment.querySelector(".set-form");
   const setList = fragment.querySelector(".set-chip-list");
+  const removeBtn = fragment.querySelector(".remove-exercise-btn");
 
   name.textContent = exercise.name;
   meta.textContent = `${exercise.sets.length} 組`;
+
+  removeBtn.addEventListener("click", () => removeExercise(planId, exercise.id));
+  if (state.activeWorkout?.planId === planId) {
+    removeBtn.disabled = true;
+  }
 
   setForm.addEventListener("submit", (event) => {
     event.preventDefault();

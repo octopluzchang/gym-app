@@ -509,21 +509,28 @@ label span {
 
 .plan-summary {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  width: 100%;
-  padding: 16px 18px;
+  align-items: stretch;
   border-radius: var(--radius-lg);
   background: rgba(255, 255, 255, 0.7);
   border: 1px solid rgba(255, 255, 255, 0.45);
+  overflow: hidden;
+}
+
+.plan-summary-main {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 18px;
+  background: transparent;
   text-align: left;
   transition: transform 180ms ease, background-color 180ms ease;
 }
 
-.plan-summary:active {
+.plan-summary-main:active {
   transform: scale(0.99);
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.45);
 }
 
 .plan-summary-text {
@@ -546,6 +553,14 @@ label span {
   line-height: 1;
 }
 
+.plan-summary-delete {
+  flex: 0 0 auto;
+  width: 52px;
+  border-radius: 0;
+  border-left: 1px solid var(--line);
+  background: transparent;
+}
+
 .plan-summary[data-active="true"] .plan-summary-name::after {
   content: "進行中";
   margin-left: 8px;
@@ -556,6 +571,31 @@ label span {
   color: var(--success);
   background: var(--success-soft);
   vertical-align: middle;
+}
+
+.icon-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: transparent;
+  color: var(--muted);
+  border-radius: 10px;
+  transition: background-color 180ms ease, color 180ms ease, transform 180ms ease;
+}
+
+.icon-btn:active {
+  transform: scale(0.92);
+  color: var(--accent-strong);
+  background: rgba(203, 90, 46, 0.08);
+}
+
+.icon-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 .hidden {

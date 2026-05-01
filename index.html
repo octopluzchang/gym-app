@@ -160,13 +160,20 @@
     </div>
 
     <template id="plan-summary-template">
-      <button class="plan-summary" type="button">
-        <div class="plan-summary-text">
-          <strong class="plan-summary-name"></strong>
-          <p class="card-meta plan-summary-meta"></p>
-        </div>
-        <span class="plan-summary-chevron" aria-hidden="true">›</span>
-      </button>
+      <div class="plan-summary">
+        <button class="plan-summary-main" type="button">
+          <div class="plan-summary-text">
+            <strong class="plan-summary-name"></strong>
+            <p class="card-meta plan-summary-meta"></p>
+          </div>
+          <span class="plan-summary-chevron" aria-hidden="true">›</span>
+        </button>
+        <button class="plan-summary-delete icon-btn" type="button" aria-label="刪除課表">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+            <path d="M4 7h16M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2m-8 0v12a2 2 0 002 2h6a2 2 0 002-2V7M10 11v6M14 11v6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
     </template>
 
     <template id="exercise-editor-template">
@@ -176,6 +183,11 @@
             <strong class="exercise-name"></strong>
             <p class="card-meta exercise-meta"></p>
           </div>
+          <button class="icon-btn remove-exercise-btn" type="button" aria-label="刪除動作">
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+              <path d="M4 7h16M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2m-8 0v12a2 2 0 002 2h6a2 2 0 002-2V7M10 11v6M14 11v6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
         </div>
 
         <form class="add-form set-form">
