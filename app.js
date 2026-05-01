@@ -75,7 +75,7 @@ function handleCreatePlan(event) {
 
   persistState();
   elements.planForm.reset();
-  setPage("plan-list");
+  setPage("home");
   renderPlans();
   renderWorkoutPlanPicker();
 }
