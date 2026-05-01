@@ -9,6 +9,11 @@
   <body>
     <div class="app-shell">
       <header class="app-bar">
+        <button class="app-bar-back nav-btn hidden" type="button" data-page="home" aria-label="返回首頁">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+            <path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
         <span class="app-bar-mark" aria-hidden="true">GP</span>
         <div class="app-bar-text">
           <p class="app-bar-eyebrow">Gym Planner</p>
@@ -44,21 +49,14 @@
 
         <section id="page-plan-create" class="page panel hidden">
           <div class="page-head">
-            <button class="back-btn nav-btn" type="button" data-page="home">返回首頁</button>
-            <div>
-              <p class="section-kicker">新增課表</p>
-              <h2>先建立課表</h2>
-            </div>
+            <p class="section-kicker">新增課表</p>
+            <h2>先建立課表</h2>
           </div>
 
           <form id="plan-form" class="stack-form">
             <label>
               <span>課表名稱</span>
               <input id="plan-name" name="planName" type="text" maxlength="40" required />
-            </label>
-            <label>
-              <span>課表日期</span>
-              <input id="plan-date" name="planDate" type="date" required />
             </label>
             <button class="primary-btn" type="submit">新增課表</button>
           </form>
@@ -67,11 +65,8 @@
 
         <section id="page-plan-list" class="page panel hidden">
           <div class="page-head">
-            <button class="back-btn nav-btn" type="button" data-page="home">返回首頁</button>
-            <div>
-              <p class="section-kicker">課表列表</p>
-              <h2>管理課表內容</h2>
-            </div>
+            <p class="section-kicker">課表列表</p>
+            <h2>管理課表內容</h2>
           </div>
 
           <button class="secondary-btn nav-btn" type="button" data-page="plan-create">新增另一份課表</button>
@@ -80,11 +75,8 @@
 
         <section id="page-workout" class="page panel hidden">
           <div class="page-head">
-            <button class="back-btn nav-btn" type="button" data-page="home">返回首頁</button>
-            <div>
-              <p class="section-kicker">開始訓練</p>
-              <h2 id="active-plan-title">尚未開始訓練</h2>
-            </div>
+            <p class="section-kicker">開始訓練</p>
+            <h2 id="active-plan-title">尚未開始訓練</h2>
           </div>
 
           <div id="active-plan-status" class="summary-pill">0 / 0 組完成</div>
@@ -107,11 +99,8 @@
 
         <section id="page-history" class="page panel hidden">
           <div class="page-head">
-            <button class="back-btn nav-btn" type="button" data-page="home">返回首頁</button>
-            <div>
-              <p class="section-kicker">歷史紀錄</p>
-              <h2>完成過的課表</h2>
-            </div>
+            <p class="section-kicker">歷史紀錄</p>
+            <h2>完成過的課表</h2>
           </div>
           <div id="history-list" class="stack-list"></div>
         </section>

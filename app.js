@@ -11,9 +11,10 @@ let countdownIntervalId = null;
 const elements = {
   pages: document.querySelectorAll(".page"),
   navButtons: document.querySelectorAll(".nav-btn"),
+  appBarBack: document.querySelector(".app-bar-back"),
+  appBarMark: document.querySelector(".app-bar-mark"),
   planForm: document.querySelector("#plan-form"),
   planName: document.querySelector("#plan-name"),
-  planDate: document.querySelector("#plan-date"),
   planList: document.querySelector("#plan-list"),
   workoutPlanPicker: document.querySelector("#workout-plan-picker"),
   activePlanTitle: document.querySelector("#active-plan-title"),
@@ -39,7 +40,6 @@ const elements = {
 initialize();
 
 function initialize() {
-  elements.planDate.value = formatDateInput(new Date());
   elements.planForm.addEventListener("submit", handleCreatePlan);
   elements.skipRestBtn.addEventListener("click", skipRestCountdown);
   elements.completionHomeBtn.addEventListener("click", handleCompletionHome);
@@ -61,22 +61,20 @@ function handleCreatePlan(event) {
   event.preventDefault();
 
   const name = elements.planName.value.trim();
-  const date = elements.planDate.value;
-  if (!name || !date) {
+  if (!name) {
     return;
   }
 
   state.plans.unshift({
     id: crypto.randomUUID(),
     name,
-    date,
+    date: formatDateInput(new Date()),
     createdAt: new Date().toISOString(),
     exercises: [],
   });
 
   persistState();
   elements.planForm.reset();
-  elements.planDate.value = formatDateInput(new Date());
   setPage("plan-list");
   renderPlans();
   renderWorkoutPlanPicker();
@@ -372,6 +370,10 @@ function renderPages() {
     page.classList.toggle("hidden", !isActive);
     page.classList.toggle("is-active", isActive);
   });
+
+  const isHome = state.currentPage === "home";
+  elements.appBarBack.classList.toggle("hidden", isHome);
+  elements.appBarMark.classList.toggle("hidden", !isHome);
 }
 
 function renderPlans() {
