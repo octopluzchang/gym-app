@@ -472,8 +472,6 @@ label span {
 }
 
 .empty-state {
-  border: 1px dashed rgba(63, 41, 20, 0.18);
-  border-radius: var(--radius-lg);
   padding: 18px;
   color: var(--muted);
   text-align: center;

@@ -466,7 +466,7 @@ function renderPlans() {
   elements.planList.innerHTML = "";
 
   if (state.plans.length === 0) {
-    elements.planList.append(createEmpty("還沒有課表，先建立一個。"));
+    elements.planList.append(createEmpty("目前沒有可用的課表"));
     return;
   }
 
@@ -493,11 +493,6 @@ function renderPlans() {
 function renderDraftPlan() {
   if (!elements.draftExerciseList) return;
   elements.draftExerciseList.innerHTML = "";
-
-  if (state.draftPlan.exercises.length === 0) {
-    elements.draftExerciseList.append(createEmpty("先加入動作和組數，再儲存課表。"));
-    return;
-  }
 
   state.draftPlan.exercises.forEach((exercise) => {
     elements.draftExerciseList.append(renderDraftExerciseCard(exercise));
@@ -612,7 +607,7 @@ function renderWorkoutPlanPicker() {
   const startablePlans = state.plans.filter((plan) => plan.exercises.some((exercise) => exercise.sets.length > 0));
 
   if (startablePlans.length === 0) {
-    elements.workoutPlanPicker.append(createEmpty("目前沒有可開始的課表。"));
+    elements.workoutPlanPicker.append(createEmpty("目前沒有可用的課表"));
     return;
   }
 
