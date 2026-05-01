@@ -149,7 +149,6 @@ input:focus {
 }
 
 .page-stack,
-.stack-form,
 .stack-list,
 .nested-list,
 .set-chip-list,
@@ -231,13 +230,6 @@ input:focus {
   color: var(--success);
 }
 
-.inline-form,
-.set-form {
-  display: grid;
-  gap: 12px;
-  margin-top: 14px;
-}
-
 label {
   display: grid;
   gap: 8px;
@@ -248,10 +240,46 @@ label span {
   font-weight: 700;
 }
 
-.triple-grid {
+.add-form {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.add-form > input,
+.add-form > .set-fields {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.set-fields {
   display: grid;
-  gap: 12px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.add-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  min-width: 50px;
+  min-height: 50px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: #fff8f2;
+  font-size: 1.6rem;
+  line-height: 1;
+  font-weight: 600;
+  transition: transform 180ms ease, background-color 180ms ease;
+}
+
+.add-btn:active {
+  transform: scale(0.94);
+  background: var(--accent-strong);
 }
 
 .primary-btn,
