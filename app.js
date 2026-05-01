@@ -4,6 +4,8 @@ const TIMER_TICK_MS = 250;
 const state = {
   ...loadState(),
   currentPage: "home",
+  draftPlan: { exercises: [] },
+  activePlanId: null,
 };
 
 let countdownIntervalId = null;
@@ -13,9 +15,15 @@ const elements = {
   navButtons: document.querySelectorAll(".nav-btn"),
   appBarBack: document.querySelector(".app-bar-back"),
   appBarMark: document.querySelector(".app-bar-mark"),
-  planForm: document.querySelector("#plan-form"),
-  planName: document.querySelector("#plan-name"),
+  draftPlanName: document.querySelector("#draft-plan-name"),
+  draftExerciseList: document.querySelector("#draft-exercise-list"),
+  draftExerciseForm: document.querySelector("#draft-exercise-form"),
+  commitPlanBtn: document.querySelector("#commit-plan-btn"),
   planList: document.querySelector("#plan-list"),
+  planDetailTitle: document.querySelector("#plan-detail-title"),
+  planDetailExercises: document.querySelector("#plan-detail-exercises"),
+  detailAddExerciseForm: document.querySelector("#detail-add-exercise-form"),
+  deletePlanBtn: document.querySelector("#delete-plan-btn"),
   workoutPlanPicker: document.querySelector("#workout-plan-picker"),
   activePlanTitle: document.querySelector("#active-plan-title"),
   activePlanStatus: document.querySelector("#active-plan-status"),
@@ -29,7 +37,7 @@ const elements = {
   completionModal: document.querySelector("#completion-modal"),
   completionCopy: document.querySelector("#completion-copy"),
   completionHomeBtn: document.querySelector("#completion-home-btn"),
-  planCardTemplate: document.querySelector("#plan-card-template"),
+  planSummaryTemplate: document.querySelector("#plan-summary-template"),
   exerciseEditorTemplate: document.querySelector("#exercise-editor-template"),
   workoutPlanTemplate: document.querySelector("#workout-plan-template"),
   activeExerciseTemplate: document.querySelector("#active-exercise-template"),
@@ -40,11 +48,21 @@ const elements = {
 initialize();
 
 function initialize() {
-  elements.planForm.addEventListener("submit", handleCreatePlan);
+  elements.appBarBack.addEventListener("click", goBack);
+  elements.draftExerciseForm.addEventListener("submit", handleDraftAddExercise);
+  elements.commitPlanBtn.addEventListener("click", commitDraftPlan);
+  elements.detailAddExerciseForm.addEventListener("submit", handleDetailAddExercise);
+  elements.deletePlanBtn.addEventListener("click", handleDeletePlan);
   elements.skipRestBtn.addEventListener("click", skipRestCountdown);
   elements.completionHomeBtn.addEventListener("click", handleCompletionHome);
   elements.navButtons.forEach((button) => {
-    button.addEventListener("click", () => setPage(button.dataset.page));
+    button.addEventListener("click", () => {
+      const target = button.dataset.page;
+      if (target === "plan-create") {
+        resetDraftPlan();
+      }
+      setPage(target);
+    });
   });
   requestNotificationPermission();
   reconcileActiveWorkout();
@@ -55,13 +73,68 @@ function initialize() {
 function setPage(pageId) {
   state.currentPage = pageId;
   renderPages();
+  if (pageId === "plan-create") renderDraftPlan();
+  if (pageId === "plan-detail") renderPlanDetail();
 }
 
-function handleCreatePlan(event) {
-  event.preventDefault();
+function goBack() {
+  if (state.currentPage === "plan-detail") {
+    state.activePlanId = null;
+    setPage("plan-list");
+    return;
+  }
+  setPage("home");
+}
 
-  const name = elements.planName.value.trim();
+function resetDraftPlan() {
+  state.draftPlan = { exercises: [] };
+  if (elements.draftPlanName) {
+    elements.draftPlanName.value = "";
+  }
+}
+
+function handleDraftAddExercise(event) {
+  event.preventDefault();
+  const input = elements.draftExerciseForm.elements.exerciseName;
+  const name = input.value.trim();
+  if (!name) return;
+  state.draftPlan.exercises.push({
+    id: crypto.randomUUID(),
+    name,
+    sets: [],
+  });
+  elements.draftExerciseForm.reset();
+  renderDraftPlan();
+}
+
+function addDraftSet(exerciseId, formData) {
+  const exercise = state.draftPlan.exercises.find((ex) => ex.id === exerciseId);
+  if (!exercise) return false;
+  const reps = Number(formData.get("reps"));
+  const weight = Number(formData.get("weight"));
+  const restSeconds = Number(formData.get("rest"));
+  if (!reps || Number.isNaN(weight) || Number.isNaN(restSeconds) || restSeconds < 0) {
+    return false;
+  }
+  exercise.sets.push({
+    id: crypto.randomUUID(),
+    reps,
+    weight,
+    restSeconds,
+  });
+  renderDraftPlan();
+  return true;
+}
+
+function removeDraftExercise(exerciseId) {
+  state.draftPlan.exercises = state.draftPlan.exercises.filter((ex) => ex.id !== exerciseId);
+  renderDraftPlan();
+}
+
+function commitDraftPlan() {
+  const name = elements.draftPlanName.value.trim();
   if (!name) {
+    elements.draftPlanName.focus();
     return;
   }
 
@@ -70,69 +143,83 @@ function handleCreatePlan(event) {
     name,
     date: formatDateInput(new Date()),
     createdAt: new Date().toISOString(),
-    exercises: [],
+    exercises: state.draftPlan.exercises.map((exercise) => ({
+      id: crypto.randomUUID(),
+      name: exercise.name,
+      sets: exercise.sets.map((set) => ({
+        id: crypto.randomUUID(),
+        reps: set.reps,
+        weight: set.weight,
+        restSeconds: set.restSeconds,
+      })),
+    })),
   });
 
+  resetDraftPlan();
   persistState();
-  elements.planForm.reset();
   setPage("home");
-  renderPlans();
-  renderWorkoutPlanPicker();
+  render();
+}
+
+function openPlanDetail(planId) {
+  state.activePlanId = planId;
+  setPage("plan-detail");
+}
+
+function handleDetailAddExercise(event) {
+  event.preventDefault();
+  const input = elements.detailAddExerciseForm.elements.exerciseName;
+  const name = input.value.trim();
+  if (!name || !state.activePlanId) return;
+  addExercise(state.activePlanId, name);
+  elements.detailAddExerciseForm.reset();
+}
+
+function handleDeletePlan() {
+  if (!state.activePlanId) return;
+  if (state.activeWorkout && state.activeWorkout.planId === state.activePlanId) return;
+  const id = state.activePlanId;
+  state.activePlanId = null;
+  state.plans = state.plans.filter((plan) => plan.id !== id);
+  persistState();
+  setPage("plan-list");
+  render();
 }
 
 function addExercise(planId, exerciseName) {
   const plan = findPlan(planId);
-  if (!plan || !exerciseName) {
-    return;
-  }
-
+  if (!plan || !exerciseName) return;
   plan.exercises.push({
     id: crypto.randomUUID(),
     name: exerciseName,
     sets: [],
   });
-
   persistState();
   renderPlans();
+  renderPlanDetail();
   renderWorkoutPlanPicker();
 }
 
 function addSet(planId, exerciseId, formData) {
   const exercise = findExercise(planId, exerciseId);
-  if (!exercise) {
-    return false;
-  }
-
+  if (!exercise) return false;
   const reps = Number(formData.get("reps"));
   const weight = Number(formData.get("weight"));
   const restSeconds = Number(formData.get("rest"));
-
   if (!reps || Number.isNaN(weight) || Number.isNaN(restSeconds) || restSeconds < 0) {
     return false;
   }
-
   exercise.sets.push({
     id: crypto.randomUUID(),
     reps,
     weight,
     restSeconds,
   });
-
   persistState();
   renderPlans();
+  renderPlanDetail();
   renderWorkoutPlanPicker();
   return true;
-}
-
-function deletePlan(planId) {
-  if (state.activeWorkout && state.activeWorkout.planId === planId) {
-    return;
-  }
-
-  state.plans = state.plans.filter((plan) => plan.id !== planId);
-  persistState();
-  renderPlans();
-  renderWorkoutPlanPicker();
 }
 
 function startWorkout(planId) {
@@ -173,10 +260,7 @@ function startWorkout(planId) {
 }
 
 function toggleExercise(exerciseId) {
-  if (!state.activeWorkout) {
-    return;
-  }
-
+  if (!state.activeWorkout) return;
   const expanded = new Set(state.activeWorkout.expandedExerciseIds);
   if (expanded.has(exerciseId)) {
     expanded.delete(exerciseId);
@@ -190,10 +274,7 @@ function toggleExercise(exerciseId) {
 
 function completeSet(exerciseId, setId) {
   const set = findActiveSet(exerciseId, setId);
-  if (!set || set.completed) {
-    return;
-  }
-
+  if (!set || set.completed) return;
   set.completed = true;
   set.completedAt = new Date().toISOString();
   syncExerciseCompletion();
@@ -204,10 +285,7 @@ function completeSet(exerciseId, setId) {
 }
 
 function syncExerciseCompletion() {
-  if (!state.activeWorkout) {
-    return;
-  }
-
+  if (!state.activeWorkout) return;
   state.activeWorkout.exercises.forEach((exercise) => {
     const totalSets = exercise.sets.length;
     exercise.completed = totalSets > 0 && exercise.sets.every((set) => set.completed);
@@ -219,10 +297,7 @@ function syncExerciseCompletion() {
 }
 
 function finishWorkout() {
-  if (!state.activeWorkout) {
-    return;
-  }
-
+  if (!state.activeWorkout) return;
   const completedAt = new Date().toISOString();
   const completedPlanName = state.activeWorkout.planName;
   state.history.unshift({
@@ -242,10 +317,7 @@ function finishWorkout() {
 }
 
 function startCountdown(exerciseId, set) {
-  if (!state.activeWorkout) {
-    return;
-  }
-
+  if (!state.activeWorkout) return;
   if (set.restSeconds <= 0) {
     state.activeWorkout.countdown = null;
     stopCountdown(false);
@@ -294,10 +366,7 @@ function ensureCountdown() {
 
 function handleCountdownComplete() {
   const countdown = state.activeWorkout?.countdown;
-  if (!countdown) {
-    return;
-  }
-
+  if (!countdown) return;
   const context = getCountdownContext(countdown);
   state.activeWorkout.countdown = null;
   stopCountdown(false);
@@ -307,10 +376,7 @@ function handleCountdownComplete() {
 }
 
 function skipRestCountdown() {
-  if (!state.activeWorkout?.countdown) {
-    return;
-  }
-
+  if (!state.activeWorkout?.countdown) return;
   state.activeWorkout.countdown = null;
   stopCountdown(false);
   persistState();
@@ -340,9 +406,7 @@ function stopCountdown(clearStored = true) {
 
 function reconcileActiveWorkout() {
   const workout = state.activeWorkout;
-  if (!workout) {
-    return;
-  }
+  if (!workout) return;
 
   workout.expandedExerciseIds = Array.isArray(workout.expandedExerciseIds)
     ? workout.expandedExerciseIds
@@ -359,6 +423,8 @@ function reconcileActiveWorkout() {
 function render() {
   renderPages();
   renderPlans();
+  renderDraftPlan();
+  renderPlanDetail();
   renderWorkoutPlanPicker();
   renderActiveWorkout();
   renderHistory();
@@ -385,40 +451,89 @@ function renderPlans() {
   }
 
   state.plans.forEach((plan) => {
-    const fragment = elements.planCardTemplate.content.cloneNode(true);
-    const title = fragment.querySelector(".card-title");
-    const meta = fragment.querySelector(".card-meta");
-    const badge = fragment.querySelector(".status-badge");
-    const addExerciseForm = fragment.querySelector(".add-exercise-form");
-    const exerciseList = fragment.querySelector(".exercise-list");
-    const deleteBtn = fragment.querySelector(".delete-plan-btn");
+    const fragment = elements.planSummaryTemplate.content.cloneNode(true);
+    const button = fragment.querySelector(".plan-summary");
+    const name = fragment.querySelector(".plan-summary-name");
+    const meta = fragment.querySelector(".plan-summary-meta");
 
-    title.textContent = plan.name;
-    meta.textContent = `${formatPlanDate(plan.date)} · ${plan.exercises.length} 個動作 · ${countPlanSets(plan)} 組`;
-    badge.textContent = state.activeWorkout?.planId === plan.id ? "進行中" : "待開始";
+    name.textContent = plan.name;
+    meta.textContent = `${plan.exercises.length} 個動作 · ${countPlanSets(plan)} 組`;
     if (state.activeWorkout?.planId === plan.id) {
-      badge.classList.add("is-complete");
+      button.dataset.active = "true";
     }
-
-    addExerciseForm.addEventListener("submit", (event) => {
-      event.preventDefault();
-      const input = addExerciseForm.elements.exerciseName;
-      const exerciseName = input.value.trim();
-      addExercise(plan.id, exerciseName);
-      addExerciseForm.reset();
-    });
-
-    plan.exercises.forEach((exercise) => {
-      exerciseList.append(renderExerciseEditor(plan.id, exercise));
-    });
-
-    if (plan.exercises.length === 0) {
-      exerciseList.append(createEmpty("先加入至少一個動作。"));
-    }
-
-    deleteBtn.addEventListener("click", () => deletePlan(plan.id));
-    deleteBtn.disabled = state.activeWorkout?.planId === plan.id;
+    button.addEventListener("click", () => openPlanDetail(plan.id));
     elements.planList.append(fragment);
+  });
+}
+
+function renderDraftPlan() {
+  if (!elements.draftExerciseList) return;
+  elements.draftExerciseList.innerHTML = "";
+
+  if (state.draftPlan.exercises.length === 0) {
+    elements.draftExerciseList.append(createEmpty("先加入動作和組數，再儲存課表。"));
+    return;
+  }
+
+  state.draftPlan.exercises.forEach((exercise) => {
+    elements.draftExerciseList.append(renderDraftExerciseCard(exercise));
+  });
+}
+
+function renderDraftExerciseCard(exercise) {
+  const fragment = elements.exerciseEditorTemplate.content.cloneNode(true);
+  const name = fragment.querySelector(".exercise-name");
+  const meta = fragment.querySelector(".exercise-meta");
+  const setForm = fragment.querySelector(".set-form");
+  const setList = fragment.querySelector(".set-chip-list");
+
+  name.textContent = exercise.name;
+  meta.textContent = `${exercise.sets.length} 組`;
+
+  setForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const success = addDraftSet(exercise.id, new FormData(setForm));
+    if (success) setForm.reset();
+  });
+
+  exercise.sets.forEach((set, index) => {
+    const chip = document.createElement("div");
+    chip.className = "set-chip";
+    const label = document.createElement("strong");
+    label.textContent = `第 ${index + 1} 組`;
+    const detail = document.createElement("span");
+    detail.textContent = `${set.reps} 下 · ${formatWeight(set.weight)} kg · 休息 ${set.restSeconds} 秒`;
+    chip.append(label, detail);
+    setList.append(chip);
+  });
+
+  return fragment;
+}
+
+function renderPlanDetail() {
+  if (!elements.planDetailExercises) return;
+  if (!state.activePlanId) {
+    elements.planDetailExercises.innerHTML = "";
+    return;
+  }
+  const plan = findPlan(state.activePlanId);
+  if (!plan) {
+    state.activePlanId = null;
+    if (state.currentPage === "plan-detail") setPage("plan-list");
+    return;
+  }
+
+  elements.planDetailTitle.textContent = plan.name;
+  elements.deletePlanBtn.disabled = state.activeWorkout?.planId === plan.id;
+  elements.planDetailExercises.innerHTML = "";
+
+  if (plan.exercises.length === 0) {
+    elements.planDetailExercises.append(createEmpty("先加入至少一個動作。"));
+    return;
+  }
+
+  plan.exercises.forEach((exercise) => {
+    elements.planDetailExercises.append(renderExerciseEditor(plan.id, exercise));
   });
 }
 
@@ -435,18 +550,17 @@ function renderExerciseEditor(planId, exercise) {
   setForm.addEventListener("submit", (event) => {
     event.preventDefault();
     const success = addSet(planId, exercise.id, new FormData(setForm));
-    if (success) {
-      setForm.reset();
-    }
+    if (success) setForm.reset();
   });
 
   exercise.sets.forEach((set, index) => {
     const chip = document.createElement("div");
     chip.className = "set-chip";
-    chip.innerHTML = `
-      <strong>第 ${index + 1} 組</strong>
-      <span>${set.reps} 下 · ${formatWeight(set.weight)} kg · 休息 ${set.restSeconds} 秒</span>
-    `;
+    const label = document.createElement("strong");
+    label.textContent = `第 ${index + 1} 組`;
+    const detail = document.createElement("span");
+    detail.textContent = `${set.reps} 下 · ${formatWeight(set.weight)} kg · 休息 ${set.restSeconds} 秒`;
+    chip.append(label, detail);
     setList.append(chip);
   });
 
@@ -460,9 +574,7 @@ function renderExerciseEditor(planId, exercise) {
 function renderWorkoutPlanPicker() {
   elements.workoutPlanPicker.innerHTML = "";
 
-  if (state.activeWorkout) {
-    return;
-  }
+  if (state.activeWorkout) return;
 
   const startablePlans = state.plans.filter((plan) => plan.exercises.some((exercise) => exercise.sets.length > 0));
 
@@ -478,7 +590,7 @@ function renderWorkoutPlanPicker() {
     const startBtn = fragment.querySelector(".start-plan-btn");
 
     title.textContent = plan.name;
-    meta.textContent = `${formatPlanDate(plan.date)} · ${plan.exercises.length} 個動作 · ${countPlanSets(plan)} 組`;
+    meta.textContent = `${plan.exercises.length} 個動作 · ${countPlanSets(plan)} 組`;
     startBtn.addEventListener("click", () => startWorkout(plan.id));
     elements.workoutPlanPicker.append(fragment);
   });
@@ -585,10 +697,7 @@ function updateTimerCard() {
 }
 
 function requestNotificationPermission() {
-  if (!("Notification" in window)) {
-    return;
-  }
-
+  if (!("Notification" in window)) return;
   if (Notification.permission === "default") {
     Notification.requestPermission().catch(() => {});
   }
@@ -596,9 +705,7 @@ function requestNotificationPermission() {
 
 function notifyRestFinished(context) {
   if ("Notification" in window && Notification.permission === "granted") {
-    new Notification("休息時間到了", {
-      body: context,
-    });
+    new Notification("休息時間到了", { body: context });
     return;
   }
 

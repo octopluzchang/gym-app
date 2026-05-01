@@ -9,7 +9,7 @@
   <body>
     <div class="app-shell">
       <header class="app-bar">
-        <button class="app-bar-back nav-btn hidden" type="button" data-page="home" aria-label="返回首頁">
+        <button class="app-bar-back hidden" type="button" aria-label="返回">
           <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
             <path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
@@ -32,12 +32,12 @@
             <button class="home-card nav-btn" type="button" data-page="plan-create">
               <p class="section-kicker">首頁</p>
               <h2>新增課表</h2>
-              <p>先建立課表名稱與日期，再到課表列表補上動作和各組資料。</p>
+              <p>一次填好課表名稱、動作與各組重量、休息資料。</p>
             </button>
             <button class="home-card nav-btn" type="button" data-page="plan-list">
               <p class="section-kicker">首頁</p>
               <h2>課表列表</h2>
-              <p>查看所有課表，並在各個動作底下直接加入組數、重量和休息秒數。</p>
+              <p>查看所有課表，點選一份進入編輯。</p>
             </button>
             <button class="home-card nav-btn" type="button" data-page="history">
               <p class="section-kicker">首頁</p>
@@ -50,32 +50,70 @@
         <section id="page-plan-create" class="page panel hidden">
           <div class="page-head">
             <p class="section-kicker">新增課表</p>
-            <h2>先建立課表</h2>
+            <h2>建立新課表</h2>
           </div>
 
-          <form id="plan-form" class="add-form">
+          <input
+            id="draft-plan-name"
+            type="text"
+            placeholder="課表名稱"
+            aria-label="課表名稱"
+            autocomplete="off"
+            maxlength="40"
+            class="title-input"
+          />
+
+          <div id="draft-exercise-list" class="nested-list"></div>
+
+          <form id="draft-exercise-form" class="add-form">
             <input
-              id="plan-name"
-              name="planName"
+              name="exerciseName"
               type="text"
-              placeholder="課表名稱"
-              aria-label="課表名稱"
+              placeholder="新增動作"
+              aria-label="新增動作"
               autocomplete="off"
               maxlength="40"
               required
             />
-            <button class="add-btn" type="submit" aria-label="新增課表">+</button>
+            <button class="add-btn" type="submit" aria-label="新增動作">+</button>
           </form>
+
+          <button id="commit-plan-btn" class="primary-btn commit-btn" type="button">加入課表</button>
         </section>
 
         <section id="page-plan-list" class="page panel hidden">
           <div class="page-head">
             <p class="section-kicker">課表列表</p>
-            <h2>管理課表內容</h2>
+            <h2>選擇要編輯的課表</h2>
           </div>
 
-          <button class="secondary-btn nav-btn" type="button" data-page="plan-create">新增另一份課表</button>
           <div id="plan-list" class="stack-list"></div>
+        </section>
+
+        <section id="page-plan-detail" class="page panel hidden">
+          <div class="page-head">
+            <p class="section-kicker">課表內容</p>
+            <h2 id="plan-detail-title">課表名稱</h2>
+          </div>
+
+          <form id="detail-add-exercise-form" class="add-form">
+            <input
+              name="exerciseName"
+              type="text"
+              placeholder="新增動作"
+              aria-label="新增動作"
+              autocomplete="off"
+              maxlength="40"
+              required
+            />
+            <button class="add-btn" type="submit" aria-label="新增動作">+</button>
+          </form>
+
+          <div id="plan-detail-exercises" class="nested-list"></div>
+
+          <div class="card-actions">
+            <button id="delete-plan-btn" class="ghost-btn" type="button">刪除課表</button>
+          </div>
         </section>
 
         <section id="page-workout" class="page panel hidden">
@@ -121,35 +159,14 @@
       </div>
     </div>
 
-    <template id="plan-card-template">
-      <article class="plan-card">
-        <div class="card-topline">
-          <div>
-            <strong class="card-title"></strong>
-            <p class="card-meta"></p>
-          </div>
-          <span class="status-badge"></span>
+    <template id="plan-summary-template">
+      <button class="plan-summary" type="button">
+        <div class="plan-summary-text">
+          <strong class="plan-summary-name"></strong>
+          <p class="card-meta plan-summary-meta"></p>
         </div>
-
-        <form class="add-form add-exercise-form">
-          <input
-            name="exerciseName"
-            type="text"
-            placeholder="新增動作"
-            aria-label="新增動作"
-            autocomplete="off"
-            maxlength="40"
-            required
-          />
-          <button class="add-btn" type="submit" aria-label="新增動作">+</button>
-        </form>
-
-        <div class="nested-list exercise-list"></div>
-
-        <div class="card-actions">
-          <button class="ghost-btn delete-plan-btn" type="button">刪除課表</button>
-        </div>
-      </article>
+        <span class="plan-summary-chevron" aria-hidden="true">›</span>
+      </button>
     </template>
 
     <template id="exercise-editor-template">

@@ -480,6 +480,84 @@ label span {
   line-height: 1.6;
 }
 
+.title-input {
+  width: 100%;
+  padding: 16px 18px;
+  margin-bottom: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--panel-strong);
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.title-input::placeholder {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+#draft-exercise-list:not(:empty) + #draft-exercise-form {
+  margin-top: 6px;
+}
+
+.commit-btn {
+  display: block;
+  width: 100%;
+  margin-top: 22px;
+}
+
+.plan-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  width: 100%;
+  padding: 16px 18px;
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  text-align: left;
+  transition: transform 180ms ease, background-color 180ms ease;
+}
+
+.plan-summary:active {
+  transform: scale(0.99);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.plan-summary-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.plan-summary-name {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.plan-summary-chevron {
+  flex: 0 0 auto;
+  font-size: 1.6rem;
+  color: var(--muted);
+  line-height: 1;
+}
+
+.plan-summary[data-active="true"] .plan-summary-name::after {
+  content: "進行中";
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--success);
+  background: var(--success-soft);
+  vertical-align: middle;
+}
+
 .hidden {
   display: none !important;
 }
