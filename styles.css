@@ -254,9 +254,24 @@ label span {
 }
 
 .set-fields {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.set-fields > input {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 10px 8px;
+  text-align: center;
+}
+
+.set-fields-sep {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .add-btn {
@@ -376,9 +391,24 @@ label span {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 12px;
+  padding: 10px 12px;
   border-radius: var(--radius-md);
   background: #fbf5ee;
+}
+
+.set-chip-detail {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.set-chip-delete {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  font-size: 1.2rem;
+  line-height: 1;
 }
 
 .exercise-toggle {

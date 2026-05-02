@@ -125,10 +125,6 @@
             <button id="skip-rest-btn" class="secondary-btn timer-action" type="button">結束休息</button>
           </div>
 
-          <div id="active-empty" class="empty-state">
-            先到設定課表建立資料，再回來開始訓練。
-          </div>
-
           <div id="active-workout" class="stack-list"></div>
         </section>
 
@@ -184,9 +180,11 @@
 
         <form class="add-form set-form">
           <div class="set-fields">
-            <input name="reps" type="number" placeholder="次數" aria-label="次數" min="1" step="1" inputmode="numeric" required />
             <input name="weight" type="number" placeholder="kg" aria-label="重量" min="0" step="0.5" inputmode="decimal" required />
-            <input name="rest" type="number" placeholder="休息秒" aria-label="休息秒數" min="0" step="1" inputmode="numeric" required />
+            <span class="set-fields-sep">×</span>
+            <input name="reps" type="number" placeholder="組" aria-label="次數" min="1" step="1" inputmode="numeric" required />
+            <span class="set-fields-sep">休息</span>
+            <input name="rest" type="number" placeholder="秒" aria-label="休息秒數" min="0" step="1" inputmode="numeric" required />
           </div>
           <button class="add-btn" type="submit" aria-label="加入組">+</button>
         </form>

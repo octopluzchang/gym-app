@@ -27,7 +27,6 @@ const elements = {
   workoutPlanPicker: document.querySelector("#workout-plan-picker"),
   activePlanTitle: document.querySelector("#active-plan-title"),
   activePlanStatus: document.querySelector("#active-plan-status"),
-  activeEmpty: document.querySelector("#active-empty"),
   activeWorkout: document.querySelector("#active-workout"),
   historyList: document.querySelector("#history-list"),
   timerCard: document.querySelector("#timer-card"),
@@ -129,6 +128,24 @@ function addDraftSet(exerciseId, formData) {
 function removeDraftExercise(exerciseId) {
   state.draftPlan.exercises = state.draftPlan.exercises.filter((ex) => ex.id !== exerciseId);
   renderDraftPlan();
+}
+
+function removeDraftSet(exerciseId, setId) {
+  const exercise = state.draftPlan.exercises.find((ex) => ex.id === exerciseId);
+  if (!exercise) return;
+  exercise.sets = exercise.sets.filter((set) => set.id !== setId);
+  renderDraftPlan();
+}
+
+function removeSet(planId, exerciseId, setId) {
+  if (state.activeWorkout?.planId === planId) return;
+  const exercise = findExercise(planId, exerciseId);
+  if (!exercise) return;
+  exercise.sets = exercise.sets.filter((set) => set.id !== setId);
+  persistState();
+  renderPlans();
+  renderPlanDetail();
+  renderWorkoutPlanPicker();
 }
 
 function commitDraftPlan() {
@@ -518,15 +535,8 @@ function renderDraftExerciseCard(exercise) {
     if (success) setForm.reset();
   });
 
-  exercise.sets.forEach((set, index) => {
-    const chip = document.createElement("div");
-    chip.className = "set-chip";
-    const label = document.createElement("strong");
-    label.textContent = `第 ${index + 1} 組`;
-    const detail = document.createElement("span");
-    detail.textContent = `${set.reps} 下 · ${formatWeight(set.weight)} kg · 休息 ${set.restSeconds} 秒`;
-    chip.append(label, detail);
-    setList.append(chip);
+  exercise.sets.forEach((set) => {
+    setList.append(createSetChip(set, () => removeDraftSet(exercise.id, set.id)));
   });
 
   return fragment;
@@ -581,22 +591,33 @@ function renderExerciseEditor(planId, exercise) {
     if (success) setForm.reset();
   });
 
-  exercise.sets.forEach((set, index) => {
-    const chip = document.createElement("div");
-    chip.className = "set-chip";
-    const label = document.createElement("strong");
-    label.textContent = `第 ${index + 1} 組`;
-    const detail = document.createElement("span");
-    detail.textContent = `${set.reps} 下 · ${formatWeight(set.weight)} kg · 休息 ${set.restSeconds} 秒`;
-    chip.append(label, detail);
-    setList.append(chip);
+  const canDelete = state.activeWorkout?.planId !== planId;
+  exercise.sets.forEach((set) => {
+    setList.append(
+      createSetChip(set, canDelete ? () => removeSet(planId, exercise.id, set.id) : null)
+    );
   });
 
-  if (exercise.sets.length === 0) {
-    setList.append(createEmpty("先加入至少一個組。"));
-  }
-
   return fragment;
+}
+
+function createSetChip(set, onDelete) {
+  const chip = document.createElement("div");
+  chip.className = "set-chip";
+  const detail = document.createElement("span");
+  detail.className = "set-chip-detail";
+  detail.textContent = `${formatWeight(set.weight)} kg × ${set.reps} 組  休息 ${set.restSeconds} 秒`;
+  chip.append(detail);
+  if (onDelete) {
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "set-chip-delete icon-btn";
+    removeBtn.setAttribute("aria-label", "刪除組");
+    removeBtn.textContent = "×";
+    removeBtn.addEventListener("click", onDelete);
+    chip.append(removeBtn);
+  }
+  return chip;
 }
 
 function renderWorkoutPlanPicker() {
@@ -630,7 +651,6 @@ function renderActiveWorkout() {
   if (!state.activeWorkout) {
     elements.activePlanTitle.textContent = "尚未開始訓練";
     elements.activePlanStatus.textContent = "0 / 0 組完成";
-    elements.activeEmpty.classList.remove("hidden");
     updateTimerCard();
     return;
   }
@@ -640,7 +660,6 @@ function renderActiveWorkout() {
 
   elements.activePlanTitle.textContent = state.activeWorkout.planName;
   elements.activePlanStatus.textContent = `${completedSets} / ${totalSets} 組完成`;
-  elements.activeEmpty.classList.add("hidden");
 
   state.activeWorkout.exercises.forEach((exercise) => {
     const fragment = elements.activeExerciseTemplate.content.cloneNode(true);
@@ -672,7 +691,7 @@ function renderActiveWorkout() {
       const button = setFragment.querySelector(".complete-set-btn");
 
       label.textContent = `第 ${set.order} 組`;
-      detail.textContent = `${set.reps} 下 · ${formatWeight(set.weight)} kg · 休息 ${set.restSeconds} 秒`;
+      detail.textContent = `${formatWeight(set.weight)} kg × ${set.reps} 組  休息 ${set.restSeconds} 秒`;
 
       if (set.completed) {
         row.classList.add("is-complete");
