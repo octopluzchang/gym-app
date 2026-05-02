@@ -112,6 +112,8 @@ input:focus {
 }
 
 .app-bar-text {
+  flex: 1 1 auto;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   line-height: 1.1;
@@ -131,6 +133,9 @@ input:focus {
   font-size: 1.05rem;
   font-weight: 800;
   color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .section-kicker {
@@ -142,7 +147,6 @@ input:focus {
   text-transform: uppercase;
 }
 
-.page-head h2,
 .home-card h2 {
   margin: 0;
   line-height: 1.08;
@@ -168,12 +172,16 @@ input:focus {
 
 .panel,
 .home-card {
-  padding: 18px;
+  padding: 12px;
   border-radius: var(--radius-xl);
   background: var(--panel);
   border: 1px solid rgba(255, 255, 255, 0.5);
   backdrop-filter: blur(16px);
   box-shadow: var(--shadow);
+}
+
+.home-card {
+  padding: 18px;
 }
 
 .home-card {
@@ -195,10 +203,6 @@ input:focus {
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-}
-
-.page-head {
-  margin-bottom: 18px;
 }
 
 .summary-pill,
@@ -346,7 +350,7 @@ label span {
 .workout-card,
 .history-card,
 .timer-card {
-  padding: 14px;
+  padding: 12px;
   border-radius: var(--radius-lg);
   background: rgba(255, 255, 255, 0.7);
   border: 1px solid rgba(255, 255, 255, 0.45);
@@ -389,9 +393,8 @@ label span {
 .set-chip {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 12px;
+  gap: 4px;
+  padding: 8px 10px;
   border-radius: var(--radius-md);
   background: #fbf5ee;
 }
@@ -403,12 +406,16 @@ label span {
   color: var(--text);
 }
 
+.set-chip-copy,
 .set-chip-delete {
   flex: 0 0 auto;
   width: 30px;
   height: 30px;
-  font-size: 1.2rem;
   line-height: 1;
+}
+
+.set-chip-delete {
+  font-size: 1.2rem;
 }
 
 .exercise-toggle {
@@ -535,6 +542,85 @@ label span {
   margin-top: 22px;
 }
 
+.import-panel {
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid var(--line);
+}
+
+.import-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-weight: 700;
+  color: var(--accent-strong);
+  cursor: pointer;
+  list-style: none;
+  padding: 4px 0;
+}
+
+.import-summary::-webkit-details-marker {
+  display: none;
+}
+
+.import-summary-chevron {
+  font-size: 1.4rem;
+  line-height: 1;
+  color: var(--muted);
+  transition: transform 200ms ease;
+}
+
+.import-panel[open] .import-summary-chevron {
+  transform: rotate(90deg);
+}
+
+.import-body {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.import-help {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+#import-textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--panel-strong);
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.import-error {
+  margin: 0;
+  color: var(--accent-strong);
+  font-size: 0.85rem;
+}
+
+.text-link {
+  background: transparent;
+  color: var(--accent-strong);
+  padding: 0;
+  font-weight: 700;
+  text-decoration: underline;
+  font-size: inherit;
+  cursor: pointer;
+  border: 0;
+  min-height: 0;
+}
+
 .plan-summary {
   display: flex;
   align-items: stretch;
@@ -644,7 +730,10 @@ label span {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .panel,
+  .panel {
+    padding: 18px;
+  }
+
   .home-card {
     padding: 22px;
   }

@@ -40,11 +40,6 @@
         </section>
 
         <section id="page-plan-create" class="page panel hidden">
-          <div class="page-head">
-            <p class="section-kicker">新增課表</p>
-            <h2>建立新課表</h2>
-          </div>
-
           <input
             id="draft-plan-name"
             type="text"
@@ -54,6 +49,22 @@
             maxlength="40"
             class="title-input"
           />
+
+          <details id="import-panel" class="import-panel">
+            <summary class="import-summary">
+              <span>從 AI 課表匯入</span>
+              <span class="import-summary-chevron" aria-hidden="true">›</span>
+            </summary>
+            <div class="import-body">
+              <p class="import-help">
+                把 AI 輸出的 JSON 貼進來。
+                <button type="button" id="copy-prompt-btn" class="text-link">複製範本提示詞</button>
+              </p>
+              <textarea id="import-textarea" placeholder='{"name":"推日","exercises":[{"name":"Bench Press","sets":[{"weight":60,"reps":10,"rest":90}]}]}'></textarea>
+              <p id="import-error" class="import-error hidden"></p>
+              <button id="import-parse-btn" type="button" class="secondary-btn">解析並填入</button>
+            </div>
+          </details>
 
           <div id="draft-exercise-list" class="nested-list"></div>
 
@@ -74,20 +85,10 @@
         </section>
 
         <section id="page-plan-list" class="page panel hidden">
-          <div class="page-head">
-            <p class="section-kicker">課表列表</p>
-            <h2>選擇要編輯的課表</h2>
-          </div>
-
           <div id="plan-list" class="stack-list"></div>
         </section>
 
         <section id="page-plan-detail" class="page panel hidden">
-          <div class="page-head">
-            <p class="section-kicker">課表內容</p>
-            <h2 id="plan-detail-title">課表名稱</h2>
-          </div>
-
           <form id="detail-add-exercise-form" class="add-form">
             <input
               name="exerciseName"
@@ -109,11 +110,6 @@
         </section>
 
         <section id="page-workout" class="page panel hidden">
-          <div class="page-head">
-            <p class="section-kicker">開始訓練</p>
-            <h2 id="active-plan-title">尚未開始訓練</h2>
-          </div>
-
           <div id="active-plan-status" class="summary-pill">0 / 0 組完成</div>
 
           <div id="workout-plan-picker" class="stack-list"></div>
@@ -129,10 +125,6 @@
         </section>
 
         <section id="page-history" class="page panel hidden">
-          <div class="page-head">
-            <p class="section-kicker">歷史紀錄</p>
-            <h2>完成過的課表</h2>
-          </div>
           <div id="history-list" class="stack-list"></div>
         </section>
       </main>
