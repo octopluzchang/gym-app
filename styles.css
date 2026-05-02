@@ -712,6 +712,128 @@ label span {
   cursor: not-allowed;
 }
 
+.exercise-toggle-btn {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+  background: transparent;
+  text-align: left;
+  color: var(--text);
+}
+
+.exercise-toggle-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.exercise-toggle-text .exercise-name {
+  display: block;
+  font-size: 1rem;
+  margin-bottom: 4px;
+}
+
+.exercise-toggle-chevron {
+  flex: 0 0 auto;
+  font-size: 1.4rem;
+  line-height: 1;
+  color: var(--muted);
+  transition: transform 200ms ease;
+}
+
+.nested-card.is-expanded .exercise-toggle-chevron {
+  transform: rotate(90deg);
+}
+
+.exercise-body {
+  display: none;
+}
+
+.nested-card.is-expanded .exercise-body {
+  display: block;
+}
+
+.drag-handle {
+  touch-action: none;
+  cursor: grab;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.sortable-ghost {
+  opacity: 0.4;
+}
+
+.sortable-chosen {
+  background: rgba(203, 90, 46, 0.06);
+}
+
+.sheets-block {
+  padding: 14px;
+  margin-bottom: 14px;
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+}
+
+.sheets-block:last-child {
+  margin-bottom: 0;
+}
+
+.sheets-url-input {
+  margin-top: 10px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.85rem;
+}
+
+.sheets-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.sheets-actions > button {
+  flex: 1 1 auto;
+}
+
+.sheets-status {
+  margin: 12px 0 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.sheets-status[data-kind="ok"] {
+  color: var(--success);
+}
+
+.sheets-status[data-kind="error"] {
+  color: var(--accent-strong);
+}
+
+.sheets-help {
+  margin-top: 10px;
+}
+
+.sheets-example {
+  margin: 10px 0 0;
+  padding: 12px;
+  background: var(--panel-strong);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-x: auto;
+}
+
 .hidden {
   display: none !important;
 }

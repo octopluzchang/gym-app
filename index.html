@@ -36,6 +36,9 @@
             <button class="home-card nav-btn" type="button" data-page="history">
               <h2>歷史紀錄</h2>
             </button>
+            <button class="home-card nav-btn" type="button" data-page="sheets">
+              <h2>Google Sheets</h2>
+            </button>
           </div>
         </section>
 
@@ -49,22 +52,6 @@
             maxlength="40"
             class="title-input"
           />
-
-          <details id="import-panel" class="import-panel">
-            <summary class="import-summary">
-              <span>從 AI 課表匯入</span>
-              <span class="import-summary-chevron" aria-hidden="true">›</span>
-            </summary>
-            <div class="import-body">
-              <p class="import-help">
-                把 AI 輸出的 JSON 貼進來。
-                <button type="button" id="copy-prompt-btn" class="text-link">複製範本提示詞</button>
-              </p>
-              <textarea id="import-textarea" placeholder='{"name":"推日","exercises":[{"name":"Bench Press","sets":[{"weight":60,"reps":10,"rest":90}]}]}'></textarea>
-              <p id="import-error" class="import-error hidden"></p>
-              <button id="import-parse-btn" type="button" class="secondary-btn">解析並填入</button>
-            </div>
-          </details>
 
           <div id="draft-exercise-list" class="nested-list"></div>
 
@@ -110,8 +97,6 @@
         </section>
 
         <section id="page-workout" class="page panel hidden">
-          <div id="active-plan-status" class="summary-pill">0 / 0 組完成</div>
-
           <div id="workout-plan-picker" class="stack-list"></div>
 
           <div id="timer-card" class="timer-card hidden">
@@ -126,6 +111,48 @@
 
         <section id="page-history" class="page panel hidden">
           <div id="history-list" class="stack-list"></div>
+        </section>
+
+        <section id="page-sheets" class="page panel hidden">
+          <div class="sheets-block">
+            <p class="card-meta">
+              在 Google Sheets 用 <strong>檔案 → 分享 → 發布到網路</strong>，選擇對應分頁、格式為 CSV，把連結貼進來。
+            </p>
+            <input
+              id="sheets-url"
+              type="url"
+              placeholder="https://docs.google.com/.../pub?output=csv"
+              autocomplete="off"
+              class="sheets-url-input"
+            />
+            <div class="sheets-actions">
+              <button id="save-sheets-url-btn" type="button" class="secondary-btn">儲存網址</button>
+              <button id="sync-sheets-btn" type="button" class="primary-btn">從 Sheets 同步</button>
+            </div>
+            <p id="sheets-status" class="sheets-status hidden"></p>
+          </div>
+
+          <div class="sheets-block">
+            <p class="card-meta">給 AI 用的工具</p>
+            <div class="sheets-actions">
+              <button id="copy-sheets-prompt-btn" type="button" class="secondary-btn">複製『產生課表』提示詞</button>
+              <button id="copy-analysis-btn" type="button" class="secondary-btn">複製課表+紀錄給 AI 分析</button>
+            </div>
+          </div>
+
+          <details class="sheets-block">
+            <summary class="import-summary">
+              <span>欄位格式說明</span>
+              <span class="import-summary-chevron" aria-hidden="true">›</span>
+            </summary>
+            <div class="sheets-help">
+              <p class="card-meta">第一列為標頭，每一列代表一組。</p>
+              <pre class="sheets-example">plan,exercise,weight,reps,rest
+推日,Bench Press,60,10,90
+推日,Bench Press,70,8,90
+推日,Shoulder Press,30,12,60</pre>
+            </div>
+          </details>
         </section>
       </main>
     </div>
@@ -159,16 +186,25 @@
     <template id="exercise-editor-template">
       <section class="nested-card">
         <div class="card-topline">
-          <div>
-            <strong class="exercise-name"></strong>
-            <p class="card-meta exercise-meta"></p>
-          </div>
+          <button class="exercise-toggle-btn" type="button">
+            <span class="exercise-toggle-chevron" aria-hidden="true">›</span>
+            <div class="exercise-toggle-text">
+              <strong class="exercise-name"></strong>
+              <p class="card-meta exercise-meta"></p>
+            </div>
+          </button>
+          <span class="drag-handle icon-btn" role="button" tabindex="-1" aria-label="拖曳排序">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <path d="M8 6h.01M8 12h.01M8 18h.01M16 6h.01M16 12h.01M16 18h.01" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+            </svg>
+          </span>
           <button class="icon-btn remove-exercise-btn" type="button" aria-label="刪除動作">
             <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
               <path d="M4 7h16M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2m-8 0v12a2 2 0 002 2h6a2 2 0 002-2V7M10 11v6M14 11v6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
         </div>
+        <div class="exercise-body">
 
         <form class="add-form set-form">
           <div class="set-fields">
@@ -182,6 +218,7 @@
         </form>
 
         <div class="set-chip-list"></div>
+        </div>
       </section>
     </template>
 
@@ -232,6 +269,7 @@
       </article>
     </template>
 
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

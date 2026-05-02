@@ -1,4 +1,5 @@
 const STORAGE_KEY = "gym-planner-v4";
+const SHEETS_URL_KEY = "gym-planner-sheets-url";
 const TIMER_TICK_MS = 250;
 
 const state = {
@@ -6,9 +7,13 @@ const state = {
   currentPage: "home",
   draftPlan: { exercises: [] },
   activePlanId: null,
+  sheetsUrl: localStorage.getItem(SHEETS_URL_KEY) ?? "",
 };
 
 let countdownIntervalId = null;
+let draftSortable = null;
+let detailSortable = null;
+const expandedExerciseIds = new Set();
 
 const PAGE_META = {
   home: { eyebrow: "Gym Planner", title: () => "訓練紀錄" },
@@ -23,7 +28,25 @@ const PAGE_META = {
     title: () => state.activeWorkout?.planName ?? "尚未開始訓練",
   },
   history: { eyebrow: "歷史紀錄", title: () => "完成過的課表" },
+  sheets: { eyebrow: "Google Sheets", title: () => "課表同步與 AI" },
 };
+
+const SHEETS_PROMPT = `請設計一份健身課表，輸出為 CSV 格式（每組一列）。標頭必須是：
+plan,exercise,weight,reps,rest
+
+範例：
+plan,exercise,weight,reps,rest
+推日,Bench Press,60,10,90
+推日,Bench Press,70,8,90
+推日,Shoulder Press,30,12,60
+
+- weight 是公斤
+- reps 是次數
+- rest 是組間休息秒數
+- 同一動作多組就寫多列
+- 一個 Google Sheets 可以放多份課表，用 plan 欄區分
+
+請只輸出 CSV（含標頭），不要其他文字。我會把它貼到 Google Sheets 用。`;
 
 const elements = {
   pages: document.querySelectorAll(".page"),
@@ -33,11 +56,6 @@ const elements = {
   appBarEyebrow: document.querySelector(".app-bar-eyebrow"),
   appBarTitle: document.querySelector(".app-bar-title"),
   draftPlanName: document.querySelector("#draft-plan-name"),
-  importPanel: document.querySelector("#import-panel"),
-  importTextarea: document.querySelector("#import-textarea"),
-  importParseBtn: document.querySelector("#import-parse-btn"),
-  importError: document.querySelector("#import-error"),
-  copyPromptBtn: document.querySelector("#copy-prompt-btn"),
   draftExerciseList: document.querySelector("#draft-exercise-list"),
   draftExerciseForm: document.querySelector("#draft-exercise-form"),
   commitPlanBtn: document.querySelector("#commit-plan-btn"),
@@ -46,7 +64,6 @@ const elements = {
   detailAddExerciseForm: document.querySelector("#detail-add-exercise-form"),
   deletePlanBtn: document.querySelector("#delete-plan-btn"),
   workoutPlanPicker: document.querySelector("#workout-plan-picker"),
-  activePlanStatus: document.querySelector("#active-plan-status"),
   activeWorkout: document.querySelector("#active-workout"),
   historyList: document.querySelector("#history-list"),
   timerCard: document.querySelector("#timer-card"),
@@ -62,6 +79,12 @@ const elements = {
   activeExerciseTemplate: document.querySelector("#active-exercise-template"),
   activeSetTemplate: document.querySelector("#active-set-template"),
   historyCardTemplate: document.querySelector("#history-card-template"),
+  sheetsUrl: document.querySelector("#sheets-url"),
+  saveSheetsUrlBtn: document.querySelector("#save-sheets-url-btn"),
+  syncSheetsBtn: document.querySelector("#sync-sheets-btn"),
+  sheetsStatus: document.querySelector("#sheets-status"),
+  copySheetsPromptBtn: document.querySelector("#copy-sheets-prompt-btn"),
+  copyAnalysisBtn: document.querySelector("#copy-analysis-btn"),
 };
 
 initialize();
@@ -72,8 +95,11 @@ function initialize() {
   elements.commitPlanBtn.addEventListener("click", commitDraftPlan);
   elements.detailAddExerciseForm.addEventListener("submit", handleDetailAddExercise);
   elements.deletePlanBtn.addEventListener("click", handleDeletePlan);
-  elements.importParseBtn.addEventListener("click", handleImport);
-  elements.copyPromptBtn.addEventListener("click", copyImportPrompt);
+  elements.saveSheetsUrlBtn.addEventListener("click", saveSheetsUrl);
+  elements.syncSheetsBtn.addEventListener("click", syncFromSheets);
+  elements.copySheetsPromptBtn.addEventListener("click", copySheetsPrompt);
+  elements.copyAnalysisBtn.addEventListener("click", copyAnalysisData);
+  elements.sheetsUrl.value = state.sheetsUrl;
   elements.skipRestBtn.addEventListener("click", skipRestCountdown);
   elements.completionHomeBtn.addEventListener("click", handleCompletionHome);
   elements.navButtons.forEach((button) => {
@@ -110,9 +136,6 @@ function goBack() {
 function resetDraftPlan() {
   state.draftPlan = { exercises: [] };
   if (elements.draftPlanName) elements.draftPlanName.value = "";
-  if (elements.importTextarea) elements.importTextarea.value = "";
-  if (elements.importPanel) elements.importPanel.open = false;
-  hideImportError();
 }
 
 function handleDraftAddExercise(event) {
@@ -205,89 +228,229 @@ function duplicateSet(planId, exerciseId, setId) {
   renderWorkoutPlanPicker();
 }
 
-const IMPORT_PROMPT = `請幫我設計一份健身課表，只用以下 JSON 格式回覆，不要任何其他文字：
-
-{
-  "name": "課表名稱",
-  "exercises": [
-    { "name": "動作名稱", "sets": [{ "weight": 60, "reps": 10, "rest": 90 }] }
-  ]
+function saveSheetsUrl() {
+  const url = elements.sheetsUrl.value.trim();
+  state.sheetsUrl = url;
+  if (url) {
+    localStorage.setItem(SHEETS_URL_KEY, url);
+  } else {
+    localStorage.removeItem(SHEETS_URL_KEY);
+  }
+  showSheetsStatus(url ? "已儲存" : "已清除", "ok");
 }
 
-- weight 單位是 kg
-- reps 是次數
-- rest 是組間休息秒數
-請只輸出 JSON，不要其他說明。`;
-
-function handleImport() {
-  const raw = elements.importTextarea.value.trim();
-  if (!raw) {
-    showImportError("請先貼上 JSON。");
+async function syncFromSheets() {
+  const url = state.sheetsUrl;
+  if (!url) {
+    showSheetsStatus("請先設定並儲存 Sheets 網址。", "error");
     return;
   }
-  let data;
+  showSheetsStatus("同步中…", "ok");
   try {
-    data = JSON.parse(raw);
+    const res = await fetch(url, { redirect: "follow" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const csv = await res.text();
+    const plans = csvToPlans(csv);
+    if (plans.length === 0) {
+      showSheetsStatus("Sheets 沒有可解析的課表資料。", "error");
+      return;
+    }
+    state.plans = plans;
+    persistState();
+    render();
+    showSheetsStatus(`已同步 ${plans.length} 份課表、${plans.reduce((s, p) => s + countPlanSets(p), 0)} 組。`, "ok");
   } catch (err) {
-    showImportError("無法解析 JSON：" + err.message);
-    return;
+    showSheetsStatus("同步失敗：" + err.message, "error");
   }
-  if (!data || typeof data !== "object" || !Array.isArray(data.exercises)) {
-    showImportError("格式不正確，需要包含 exercises 陣列。");
-    return;
-  }
-
-  const exercises = data.exercises
-    .map((ex) => {
-      const exerciseName = String(ex?.name ?? "").trim().slice(0, 40);
-      if (!exerciseName) return null;
-      const sets = (Array.isArray(ex.sets) ? ex.sets : [])
-        .map((s) => {
-          const reps = Number(s?.reps);
-          if (!reps || reps < 1) return null;
-          return {
-            id: crypto.randomUUID(),
-            weight: Number(s?.weight) || 0,
-            reps,
-            restSeconds: Number(s?.rest ?? s?.restSeconds) || 0,
-          };
-        })
-        .filter(Boolean);
-      return { id: crypto.randomUUID(), name: exerciseName, sets };
-    })
-    .filter(Boolean);
-
-  if (data.name) {
-    elements.draftPlanName.value = String(data.name).trim().slice(0, 40);
-  }
-  state.draftPlan.exercises = exercises;
-  elements.importTextarea.value = "";
-  hideImportError();
-  elements.importPanel.open = false;
-  renderDraftPlan();
 }
 
-function showImportError(message) {
-  elements.importError.textContent = message;
-  elements.importError.classList.remove("hidden");
+function csvToPlans(csv) {
+  const rows = parseCSV(csv);
+  if (rows.length === 0) return [];
+  const headers = rows[0].map((h) => h.trim().toLowerCase());
+  const idx = {
+    plan: headers.indexOf("plan"),
+    exercise: headers.indexOf("exercise"),
+    weight: headers.indexOf("weight"),
+    reps: headers.indexOf("reps"),
+    rest: headers.indexOf("rest"),
+  };
+  if (idx.plan < 0 || idx.exercise < 0) {
+    throw new Error("CSV 缺少 plan 或 exercise 欄");
+  }
+  const plansMap = new Map();
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    const planName = (row[idx.plan] ?? "").trim();
+    const exerciseName = (row[idx.exercise] ?? "").trim();
+    if (!planName || !exerciseName) continue;
+    const reps = Number(row[idx.reps]);
+    if (!reps || reps < 1) continue;
+    let plan = plansMap.get(planName);
+    if (!plan) {
+      plan = {
+        id: crypto.randomUUID(),
+        name: planName,
+        date: formatDateInput(new Date()),
+        createdAt: new Date().toISOString(),
+        exercises: [],
+      };
+      plansMap.set(planName, plan);
+    }
+    let exercise = plan.exercises.find((e) => e.name === exerciseName);
+    if (!exercise) {
+      exercise = { id: crypto.randomUUID(), name: exerciseName, sets: [] };
+      plan.exercises.push(exercise);
+    }
+    exercise.sets.push({
+      id: crypto.randomUUID(),
+      weight: Number(row[idx.weight]) || 0,
+      reps,
+      restSeconds: Number(row[idx.rest]) || 0,
+    });
+  }
+  return Array.from(plansMap.values());
 }
 
-function hideImportError() {
-  elements.importError.textContent = "";
-  elements.importError.classList.add("hidden");
+function parseCSV(text) {
+  const rows = [];
+  let row = [];
+  let cell = "";
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inQuotes) {
+      if (ch === '"' && text[i + 1] === '"') {
+        cell += '"';
+        i++;
+      } else if (ch === '"') {
+        inQuotes = false;
+      } else {
+        cell += ch;
+      }
+    } else if (ch === '"') {
+      inQuotes = true;
+    } else if (ch === ",") {
+      row.push(cell);
+      cell = "";
+    } else if (ch === "\n" || ch === "\r") {
+      if (ch === "\r" && text[i + 1] === "\n") i++;
+      row.push(cell);
+      cell = "";
+      if (row.length > 1 || row[0].trim() !== "") rows.push(row);
+      row = [];
+    } else {
+      cell += ch;
+    }
+  }
+  if (cell !== "" || row.length) {
+    row.push(cell);
+    if (row.length > 1 || row[0].trim() !== "") rows.push(row);
+  }
+  return rows;
 }
 
-async function copyImportPrompt() {
+function showSheetsStatus(message, kind) {
+  elements.sheetsStatus.textContent = message;
+  elements.sheetsStatus.dataset.kind = kind;
+  elements.sheetsStatus.classList.remove("hidden");
+}
+
+async function copySheetsPrompt() {
+  await copyToClipboard(SHEETS_PROMPT, elements.copySheetsPromptBtn);
+}
+
+async function copyAnalysisData() {
+  const data = {
+    plans: state.plans.map((p) => ({
+      name: p.name,
+      exercises: p.exercises.map((ex) => ({
+        name: ex.name,
+        sets: ex.sets.map((s) => ({ weight: s.weight, reps: s.reps, rest: s.restSeconds })),
+      })),
+    })),
+    history: state.history.map((h) => ({
+      planName: h.planName,
+      startedAt: h.startedAt,
+      completedAt: h.completedAt,
+      exercises: h.exercises.map((ex) => ({
+        name: ex.name,
+        sets: ex.sets.map((s) => ({
+          weight: s.weight,
+          reps: s.reps,
+          rest: s.restSeconds,
+          completed: s.completed,
+          completedAt: s.completedAt,
+        })),
+      })),
+    })),
+  };
+  await copyToClipboard(JSON.stringify(data, null, 2), elements.copyAnalysisBtn);
+}
+
+async function copyToClipboard(text, button) {
   try {
-    await navigator.clipboard.writeText(IMPORT_PROMPT);
-    const original = elements.copyPromptBtn.textContent;
-    elements.copyPromptBtn.textContent = "已複製";
-    setTimeout(() => {
-      elements.copyPromptBtn.textContent = original;
-    }, 1500);
-  } catch {
-    showImportError("複製失敗，請手動選取下方範本。");
+    await navigator.clipboard.writeText(text);
+    if (button) {
+      const original = button.textContent;
+      button.textContent = "已複製";
+      setTimeout(() => {
+        button.textContent = original;
+      }, 1500);
+    }
+  } catch (err) {
+    showSheetsStatus("複製失敗：" + err.message, "error");
   }
+}
+
+function toggleExerciseExpanded(exerciseId, card) {
+  if (expandedExerciseIds.has(exerciseId)) {
+    expandedExerciseIds.delete(exerciseId);
+    card.classList.remove("is-expanded");
+  } else {
+    expandedExerciseIds.add(exerciseId);
+    card.classList.add("is-expanded");
+  }
+}
+
+function collapseAllInList(listEl) {
+  expandedExerciseIds.clear();
+  listEl.querySelectorAll(".nested-card").forEach((c) => c.classList.remove("is-expanded"));
+}
+
+function ensureSortable(existing, listEl, onReorder, disabled = false) {
+  if (existing) existing.destroy();
+  if (typeof window.Sortable !== "function") return null;
+  return new window.Sortable(listEl, {
+    animation: 150,
+    handle: ".drag-handle",
+    forceFallback: true,
+    fallbackTolerance: 4,
+    disabled,
+    onStart: () => collapseAllInList(listEl),
+    onEnd: (evt) => {
+      if (evt.oldIndex === evt.newIndex) return;
+      onReorder(evt.oldIndex, evt.newIndex);
+    },
+  });
+}
+
+function reorderDraftExercise(oldIdx, newIdx) {
+  const arr = state.draftPlan.exercises;
+  if (oldIdx < 0 || oldIdx >= arr.length || newIdx < 0 || newIdx >= arr.length) return;
+  const [moved] = arr.splice(oldIdx, 1);
+  arr.splice(newIdx, 0, moved);
+}
+
+function reorderPlanExercise(planId, oldIdx, newIdx) {
+  const plan = findPlan(planId);
+  if (!plan) return;
+  if (oldIdx < 0 || oldIdx >= plan.exercises.length || newIdx < 0 || newIdx >= plan.exercises.length) return;
+  const [moved] = plan.exercises.splice(oldIdx, 1);
+  plan.exercises.splice(newIdx, 0, moved);
+  persistState();
+  renderPlans();
+  renderWorkoutPlanPicker();
 }
 
 function commitDraftPlan() {
@@ -660,18 +823,30 @@ function renderDraftPlan() {
   state.draftPlan.exercises.forEach((exercise) => {
     elements.draftExerciseList.append(renderDraftExerciseCard(exercise));
   });
+
+  draftSortable = ensureSortable(
+    draftSortable,
+    elements.draftExerciseList,
+    (oldIdx, newIdx) => reorderDraftExercise(oldIdx, newIdx)
+  );
 }
 
 function renderDraftExerciseCard(exercise) {
   const fragment = elements.exerciseEditorTemplate.content.cloneNode(true);
+  const card = fragment.querySelector(".nested-card");
+  const toggleBtn = fragment.querySelector(".exercise-toggle-btn");
   const name = fragment.querySelector(".exercise-name");
   const meta = fragment.querySelector(".exercise-meta");
   const setForm = fragment.querySelector(".set-form");
   const setList = fragment.querySelector(".set-chip-list");
   const removeBtn = fragment.querySelector(".remove-exercise-btn");
 
+  card.dataset.exerciseId = exercise.id;
   name.textContent = exercise.name;
   meta.textContent = `${exercise.sets.length} 組`;
+
+  if (expandedExerciseIds.has(exercise.id)) card.classList.add("is-expanded");
+  toggleBtn.addEventListener("click", () => toggleExerciseExpanded(exercise.id, card));
 
   removeBtn.addEventListener("click", () => removeDraftExercise(exercise.id));
 
@@ -718,18 +893,31 @@ function renderPlanDetail() {
   plan.exercises.forEach((exercise) => {
     elements.planDetailExercises.append(renderExerciseEditor(plan.id, exercise));
   });
+
+  detailSortable = ensureSortable(
+    detailSortable,
+    elements.planDetailExercises,
+    (oldIdx, newIdx) => reorderPlanExercise(plan.id, oldIdx, newIdx),
+    state.activeWorkout?.planId === plan.id
+  );
 }
 
 function renderExerciseEditor(planId, exercise) {
   const fragment = elements.exerciseEditorTemplate.content.cloneNode(true);
+  const card = fragment.querySelector(".nested-card");
+  const toggleBtn = fragment.querySelector(".exercise-toggle-btn");
   const name = fragment.querySelector(".exercise-name");
   const meta = fragment.querySelector(".exercise-meta");
   const setForm = fragment.querySelector(".set-form");
   const setList = fragment.querySelector(".set-chip-list");
   const removeBtn = fragment.querySelector(".remove-exercise-btn");
 
+  card.dataset.exerciseId = exercise.id;
   name.textContent = exercise.name;
   meta.textContent = `${exercise.sets.length} 組`;
+
+  if (expandedExerciseIds.has(exercise.id)) card.classList.add("is-expanded");
+  toggleBtn.addEventListener("click", () => toggleExerciseExpanded(exercise.id, card));
 
   removeBtn.addEventListener("click", () => removeExercise(planId, exercise.id));
   if (state.activeWorkout?.planId === planId) {
@@ -814,15 +1002,9 @@ function renderActiveWorkout() {
   elements.activeWorkout.innerHTML = "";
 
   if (!state.activeWorkout) {
-    elements.activePlanStatus.textContent = "0 / 0 組完成";
     updateTimerCard();
     return;
   }
-
-  const totalSets = countWorkoutSets(state.activeWorkout);
-  const completedSets = countCompletedWorkoutSets(state.activeWorkout);
-
-  elements.activePlanStatus.textContent = `${completedSets} / ${totalSets} 組完成`;
 
   state.activeWorkout.exercises.forEach((exercise) => {
     const fragment = elements.activeExerciseTemplate.content.cloneNode(true);
