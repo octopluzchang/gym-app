@@ -10,6 +10,21 @@ const state = {
 
 let countdownIntervalId = null;
 
+const PAGE_META = {
+  home: { eyebrow: "Gym Planner", title: () => "訓練紀錄" },
+  "plan-create": { eyebrow: "新增課表", title: () => "建立新課表" },
+  "plan-list": { eyebrow: "課表列表", title: () => "選擇要編輯的課表" },
+  "plan-detail": {
+    eyebrow: "課表內容",
+    title: () => findPlan(state.activePlanId)?.name ?? "課表",
+  },
+  workout: {
+    eyebrow: "開始訓練",
+    title: () => state.activeWorkout?.planName ?? "尚未開始訓練",
+  },
+  history: { eyebrow: "歷史紀錄", title: () => "完成過的課表" },
+};
+
 const elements = {
   pages: document.querySelectorAll(".page"),
   navButtons: document.querySelectorAll(".nav-btn"),
@@ -593,21 +608,6 @@ function render() {
   renderActiveWorkout();
   renderHistory();
 }
-
-const PAGE_META = {
-  home: { eyebrow: "Gym Planner", title: () => "訓練紀錄" },
-  "plan-create": { eyebrow: "新增課表", title: () => "建立新課表" },
-  "plan-list": { eyebrow: "課表列表", title: () => "選擇要編輯的課表" },
-  "plan-detail": {
-    eyebrow: "課表內容",
-    title: () => findPlan(state.activePlanId)?.name ?? "課表",
-  },
-  workout: {
-    eyebrow: "開始訓練",
-    title: () => state.activeWorkout?.planName ?? "尚未開始訓練",
-  },
-  history: { eyebrow: "歷史紀錄", title: () => "完成過的課表" },
-};
 
 function renderPages() {
   elements.pages.forEach((page) => {
